@@ -1,0 +1,47 @@
+{
+  "name": "clipforge-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.51",
+    "axios": "^1.7",
+    "clsx": "^2.1",
+    "framer-motion": "^11.3",
+    "lucide-react": "^0.439",
+    "react": "^18.3",
+    "react-dom": "^18.3",
+    "react-dropzone": "^14.2",
+    "react-hot-toast": "^2.4",
+    "react-router-dom": "^6.26",
+    "tailwind-merge": "^2.5",
+    "zustand": "^4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14",
+    "@types/react": "^18.3",
+    "@types/react-dom": "^18.3",
+    "@typescript-eslint/eslint-plugin": "^7.18",
+    "@typescript-eslint/parser": "^7.18",
+    "@vitejs/plugin-react": "^4.3",
+    "autoprefixer": "^10.4",
+    "eslint": "^8.57",
+    "eslint-plugin-react-hooks": "^4.6",
+    "eslint-plugin-react-refresh": "^0.4",
+    "postcss": "^8.4",
+    "prettier": "^3.3",
+    "tailwindcss": "^3.4",
+    "typescript": "5.5",
+    "vite": "5.4",
+    "vitest": "^2.0"
+  }
+}

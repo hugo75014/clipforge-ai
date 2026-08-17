@@ -1,0 +1,160 @@
+version: "3.9"
+
+# =============================================================================
+# ClipForge AI — one-command stack
+# Usage:   docker compose up -d --build
+# Then:    http://localhost              (frontend)
+#          http://localhost:8000          (API)
+#          http://localhost:8000/docs     (OpenAPI)
+# =============================================================================
+
+x-common-env: &common-env
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_URL: ${APP_URL:-http://localhost}
+  API_URL: ${API_URL:-http://localhost:8000}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+  SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+  DEMO_MODE: ${DEMO_MODE:-true}
+  AI_PROVIDER: ${AI_PROVIDER:-demo}
+  AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+  TRANSCRIPTION_PROVIDER: ${TRANSCRIPTION_PROVIDER:-demo}
+  WHISPER_MODEL: ${WHISPER_MODEL:-base}
+  WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+  WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+  STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+  STORAGE_LOCAL_ROOT: /app/data
+  STORAGE_PUBLIC_BASE_URL: ${STORAGE_PUBLIC_BASE_URL:-http://localhost:8000/media}
+  MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-2048}
+  CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost,http://localhost:5173,http://localhost:8000}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOG_FORMAT: ${LOG_FORMAT:-text}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@clipforge.local}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin_change_me}
+  ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-clipforge}:${POSTGRES_PASSWORD:-clipforge_dev_password}@postgres:5432/${POSTGRES_DB:-clipforge}
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/1
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clipforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clipforge_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-clipforge}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clipforge}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  # ---------------------------------------------------------------------------
+  # Redis (broker + cache)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # Backend (FastAPI)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *common-env
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - app-data:/app/data
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m database.seeders.seed || true &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+  # ---------------------------------------------------------------------------
+  # Worker (Celery)
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *common-env
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - app-data:/app/data
+    command: ["celery", "-A", "worker.celery_app", "worker", "--loglevel=INFO", "-Q", "clips,video,ai", "--concurrency=2"]
+
+  # ---------------------------------------------------------------------------
+  # Frontend (built static + nginx)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:
+  app-data:

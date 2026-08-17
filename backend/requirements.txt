@@ -1,0 +1,34 @@
+# Core
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.4
+sqlalchemy[asyncio]>=2.0
+asyncpg>=0.29
+alembic>=1.13
+
+# Auth
+python-jose[cryptography]>=3.3
+passlib[bcrypt]>=1.7
+bcrypt>=4.0
+python-multipart>=0.0.9
+
+# HTTP
+httpx>=0.27
+
+# Async jobs
+redis>=5.0
+celery>=5.4
+
+# Video / AI
+opencv-python-headless>=4.10
+numpy>=1.26
+
+# AI providers (optional)
+openai>=1.40
+anthropic>=0.30
+google-generativeai>=0.7
+
+# Storage (optional)
+boto3>=1.34
+minio>=7.2

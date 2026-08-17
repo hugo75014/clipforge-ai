@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clipforge-backend"
+version = "0.1.0"
+description = "ClipForge AI — backend (FastAPI + workers)"
+readme = "../README.md"
+requires-python = ">=3.10"
+authors = [{ name = "ClipForge AI" }]
+license = { text = "MIT" }
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "python-jose[cryptography]>=3.3",
+    "passlib[bcrypt]>=1.7",
+    "bcrypt>=4.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+    "redis>=5.0",
+    "celery>=5.4",
+    "opencv-python-headless>=4.10",
+    "numpy>=1.26",
+    "faster-whisper>=1.0; platform_system != 'Darwin' or python_version < '3.13'",
+    "boto3>=1.34; extra == 's3'",
+    "minio>=7.2; extra == 'minio'",
+    "openai>=1.40; extra == 'openai'",
+    "anthropic>=0.30; extra == 'anthropic'",
+    "google-generativeai>=0.7; extra == 'gemini'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "types-passlib",
+    "anyio>=4.3",
+]
+s3 = ["boto3>=1.34"]
+minio = ["minio>=7.2"]
+openai = ["openai>=1.40"]
+anthropic = ["anthropic>=0.30"]
+gemini = ["google-generativeai>=0.7"]
+all = [
+    "boto3>=1.34",
+    "minio>=7.2",
+    "openai>=1.40",
+    "anthropic>=0.30",
+    "google-generativeai>=0.7",
+    "faster-whisper>=1.0",
+]
+
+[project.scripts]
+clipforge-api = "app.main:app"
+
+[tool.setuptools.packages.find]
+include = ["app*", "shared*", "video_engine*", "ai_engine*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501", "B008", "B904"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true

@@ -1,0 +1,112 @@
+# =============================================================================
+# Render Blueprint — backend + workers
+# =============================================================================
+# Deploy with: render.yaml → New → Blueprint → pick this file
+# Free Postgres/Redis are gone, so we use external Neon + Upstash (both free).
+# Set the env vars in the Render dashboard or import from .env.render.
+
+services:
+  # ---------------------------------------------------------------------------
+  # FastAPI backend (web service)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: clipforge-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ../docker/backend/Dockerfile
+    plan: starter
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: https://clipforge.example.com
+      - key: API_URL
+        value: https://api.clipforge.example.com
+      - key: FRONTEND_URL
+        value: https://clipforge.example.com
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+      - key: STORAGE_BACKEND
+        value: r2
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY
+        sync: false
+      - key: R2_SECRET_KEY
+        sync: false
+      - key: R2_BUCKET
+        value: clipforge
+      - key: DEMO_MODE
+        value: "false"
+      - key: AI_PROVIDER
+        value: openai
+      - key: AI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TRANSCRIPTION_PROVIDER
+        value: demo
+      - key: CORS_ALLOW_ORIGINS
+        value: https://clipforge.example.com,https://www.clipforge.example.com
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+      - key: ADMIN_EMAIL
+        value: admin@clipforge.example.com
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_NAME
+        value: Administrator
+
+  # ---------------------------------------------------------------------------
+  # Celery worker (background service, no HTTP)
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: clipforge-worker
+    runtime: docker
+    rootDir: .
+    dockerfilePath: docker/worker/Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: CELERY_RESULT_BACKEND
+        sync: false
+      - key: STORAGE_BACKEND
+        value: r2
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY
+        sync: false
+      - key: R2_SECRET_KEY
+        sync: false
+      - key: DEMO_MODE
+        value: "false"
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: LOG_FORMAT
+        value: json
