@@ -8,6 +8,7 @@
 .vscode/
 *.iml
 Thumbs.db
+.home/
 
 # ============== Environment ==============
 .env
