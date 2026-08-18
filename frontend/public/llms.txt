@@ -1,0 +1,25 @@
+# ClipForge AI
+
+> AI video clipping studio: turn a long video into ready-to-publish vertical
+> clips for Shorts, Reels and TikTok. Upload once, get cut, captioned and
+> framed clips back.
+
+Live app: https://clip.viralcuts.live
+API: https://api.clip.viralcuts.live (OpenAPI at /docs)
+
+## What it does
+
+- Transcribes the source video and scores its moments, then cuts the strongest ones.
+- Reframes to 9:16 and burns captions in a chosen style.
+- Renders each clip on its own, downloadable as MP4 with a thumbnail.
+- Brand kits and templates to keep captions and colours consistent across clips.
+
+## What it is not
+
+- Not a full timeline editor: cuts are per clip, not frame-by-frame on a timeline.
+- No YouTube or Vimeo URL import — upload the file, or give a direct file URL.
+
+## Access
+
+Account required (free registration). Rendering runs on a background worker,
+so long videos are processed asynchronously.
