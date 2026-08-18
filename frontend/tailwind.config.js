@@ -39,6 +39,14 @@ export default {
         },
       },
       fontFamily: {
+        // Face d'affichage réservée aux titres de la page publique.
+        display: [
+          'Bricolage Grotesque',
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          'sans-serif',
+        ],
         sans: [
           'Inter',
           'ui-sans-serif',

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 
 import AppShell from './components/layout/AppShell'
+import HomeGate from './components/auth/HomeGate'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
@@ -23,14 +24,9 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
+      {/* Racine partagée : page de présentation pour un visiteur, application
+          pour un compte connecté. Les routes internes restent protégées. */}
+      <Route path="/" element={<HomeGate />}>
         <Route index element={<DashboardPage />} />
         <Route path="new" element={<NewProjectPage />} />
         <Route path="projects" element={<ProjectsListPage />} />
