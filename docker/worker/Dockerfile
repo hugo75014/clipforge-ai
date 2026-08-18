@@ -27,7 +27,7 @@ COPY backend/ /app/
 COPY shared/ /app/shared/
 COPY video_engine/ /app/video_engine/
 COPY ai_engine/ /app/ai_engine/
-COPY workers/ /app/workers/
+COPY workers/ /app/worker/
 
 RUN mkdir -p /app/data/uploads /app/data/temp /app/data/outputs /app/data/logs
 
