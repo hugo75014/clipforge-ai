@@ -61,7 +61,8 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Jamais sur 0.0.0.0 : la base ne doit être joignable que depuis la machine.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
 
   # ---------------------------------------------------------------------------
   # Redis (broker + cache)
@@ -111,7 +112,7 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
 
   # ---------------------------------------------------------------------------
   # Worker (Celery)

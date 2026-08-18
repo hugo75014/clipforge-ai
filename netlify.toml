@@ -12,7 +12,7 @@
 [build.environment]
   NODE_VERSION = "20"
   # Vite reads VITE_* at build time. Set this to your backend URL.
-  VITE_API_URL = "https://api.clipforge.example.com"
+  VITE_API_URL = "https://api.clip.viralcuts.live"
 
 # SPA fallback — every unknown path serves index.html so React Router works.
 [[redirects]]

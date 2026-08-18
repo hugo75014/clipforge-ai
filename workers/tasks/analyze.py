@@ -10,7 +10,7 @@ log = get_logger(__name__)
 
 
 @celery_app.task(name="worker.tasks.analyze.run", bind=True, max_retries=2)
-def run_analyze(self, project_id: str, user_id: str | None = None) -> dict:
+def run_analyze(self, project_id: str, user_id: str | None = None, job_id: str | None = None) -> dict:
     """Run the analyze pipeline for `project_id`.
 
     Mirrors the inline `analyze_sync` endpoint but in a worker.
@@ -26,9 +26,13 @@ def run_analyze(self, project_id: str, user_id: str | None = None) -> dict:
                 project = await db.get(Project, project_id)
                 if project is None:
                     return {"ok": False, "error": "project not found"}
-                job = await job_service.create_job(
-                    db, type_="analyze", project_id=project.id, user_id=user_id
-                )
+                # L'API crée déjà la ligne Job avant d'empiler la tâche : on la
+                # reprend, sinon le client suit un job qui ne bougera jamais.
+                job = await job_service.get_job(db, job_id) if job_id else None
+                if job is None:
+                    job = await job_service.create_job(
+                        db, type_="analyze", project_id=project.id, user_id=user_id
+                    )
                 try:
                     await job_service.start_job(db, job, worker_id=self.request.id)
 

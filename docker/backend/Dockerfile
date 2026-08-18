@@ -22,6 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Les scripts installés (celery, uvicorn) mettent leur propre dossier en tête de
+# sys.path, pas le répertoire courant : sans PYTHONPATH, `import shared` échoue.
+ENV PYTHONPATH=/app
+
 WORKDIR /app
 
 # Install Python deps first for layer caching

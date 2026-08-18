@@ -20,6 +20,7 @@ def run_render(
     caption_style: str = "viral",
     caption_position: str = "bottom",
     user_id: str | None = None,
+    job_id: str | None = None,
 ) -> dict:
     from app.db.session import SessionLocal
     from app.models import Clip, Project
@@ -35,9 +36,12 @@ def run_render(
                 project = await db.get(Project, clip.project_id)
                 if project is None:
                     return {"ok": False, "error": "project not found"}
-                job = await job_service.create_job(
-                    db, type_="render", project_id=project.id, clip_id=clip.id, user_id=user_id
-                )
+                # Idem analyze : réutiliser le Job créé par l'API.
+                job = await job_service.get_job(db, job_id) if job_id else None
+                if job is None:
+                    job = await job_service.create_job(
+                        db, type_="render", project_id=project.id, clip_id=clip.id, user_id=user_id
+                    )
                 try:
                     await job_service.start_job(db, job, worker_id=self.request.id)
 

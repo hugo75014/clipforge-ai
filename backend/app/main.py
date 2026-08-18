@@ -167,6 +167,40 @@ async def _seed_builtin_templates(db) -> None:
     await db.commit()
 
 
+async def _recover_orphan_jobs() -> None:
+    """Marque en échec les jobs restés `running` d'une exécution précédente.
+
+    Sans ça, un redémarrage en plein rendu laisse un job figé à 40 % pour
+    toujours : l'utilisateur voit une barre qui ne bouge plus et aucun message.
+    Les jobs `pending` sont laissés tels quels — s'ils sont dans la file Celery,
+    le worker les prendra.
+    """
+    from sqlalchemy import select, update
+
+    from app.db.session import SessionLocal
+    from app.models import Job
+    from app.services.job import _now_iso
+
+    async with SessionLocal() as db:
+        res = await db.execute(select(Job.id).where(Job.status == "running"))
+        ids = [row[0] for row in res.all()]
+        if not ids:
+            return
+        await db.execute(
+            update(Job)
+            .where(Job.id.in_(ids))
+            .values(
+                status="failed",
+                error="Interrompu par un redémarrage du service",
+                message="Interrompu par un redémarrage du service",
+                # La colonne stocke une date ISO en texte, pas un datetime.
+                finished_at=_now_iso(),
+            )
+        )
+        await db.commit()
+        log.warning("Marked %d orphan job(s) as failed after restart", len(ids))
+
+
 # =============================================================================
 # Lifespan
 # =============================================================================
@@ -181,6 +215,10 @@ async def lifespan(app: FastAPI):
         await _bootstrap_admin()
     except Exception as exc:  # noqa: BLE001
         log.warning("Bootstrap failed: %s", exc)
+    try:
+        await _recover_orphan_jobs()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Orphan job recovery failed: %s", exc)
 
     # Make sure data dirs exist
     for d in (settings.uploads_dir, settings.temp_dir, settings.outputs_dir, settings.logs_dir):

@@ -23,11 +23,11 @@ services:
       - key: APP_DEBUG
         value: "false"
       - key: APP_URL
-        value: https://clipforge.example.com
+        value: https://clip.viralcuts.live
       - key: API_URL
-        value: https://api.clipforge.example.com
+        value: https://api.clip.viralcuts.live
       - key: FRONTEND_URL
-        value: https://clipforge.example.com
+        value: https://clip.viralcuts.live
       - key: SECRET_KEY
         generateValue: true
       - key: JWT_SECRET
@@ -61,13 +61,13 @@ services:
       - key: TRANSCRIPTION_PROVIDER
         value: demo
       - key: CORS_ALLOW_ORIGINS
-        value: https://clipforge.example.com,https://www.clipforge.example.com
+        value: https://clip.viralcuts.live
       - key: LOG_LEVEL
         value: INFO
       - key: LOG_FORMAT
         value: json
       - key: ADMIN_EMAIL
-        value: admin@clipforge.example.com
+        value: admin@clip.viralcuts.live
       - key: ADMIN_PASSWORD
         generateValue: true
       - key: ADMIN_NAME

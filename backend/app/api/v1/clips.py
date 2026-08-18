@@ -17,6 +17,7 @@ from app.models import Clip, Job, Project, User
 from app.schemas.clip import ClipOut, ClipReorderItem, ClipUpdate
 from app.schemas.job import JobOut
 from app.services import job as job_service
+from app.services import queue
 from app.services.video import run_ai_edit_pipeline, run_render_pipeline
 
 
@@ -117,6 +118,27 @@ async def render(
                  "caption_style": caption_style, "caption_position": caption_position},
     )
 
+    # Chemin normal : le worker Celery prend le rendu.
+    task_id = queue.dispatch(
+        "worker.tasks.render.run",
+        kwargs={
+            "clip_id": clip.id,
+            "aspect": aspect,
+            "resolution": resolution,
+            "burn_subtitles": burn_subtitles,
+            "caption_style": caption_style,
+            "caption_position": caption_position,
+            "user_id": user.id,
+            "job_id": job.id,
+        },
+    )
+    if task_id:
+        job.celery_task_id = task_id
+        await db.commit()
+        await db.refresh(job)
+        return JobOut.model_validate(job)
+
+    # Repli sans worker : rendu dans le processus web.
     async def _runner():
         from app.db.session import SessionLocal as _SL
 

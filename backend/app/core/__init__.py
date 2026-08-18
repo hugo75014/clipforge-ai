@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     celery_broker_url: str = "redis://redis:6379/0"
     celery_result_backend: str = "redis://redis:6379/1"
+    # Quand false, les traitements lourds tournent dans le processus web
+    # (utile en dev / sur une machine sans worker).
+    use_celery: bool = True
 
     # ---------- Storage ----------
     storage_backend: str = "local"  # local | s3 | minio | r2
@@ -157,6 +160,16 @@ class Settings(BaseSettings):
 
     @property
     def data_dir(self) -> Path:
+        """Racine des fichiers (uploads, rendus, temporaires).
+
+        Doit suivre STORAGE_LOCAL_ROOT : dans l'image Docker, `project_root`
+        remonte à « / » et les vidéos atterrissaient dans /data, à côté du
+        volume monté sur /app/data. Résultat : fichiers perdus au rebuild, et
+        worker et API qui ne voyaient pas les mêmes fichiers.
+        """
+        root = (self.storage_local_root or "").strip()
+        if root:
+            return Path(root)
         return self.project_root / "data"
 
     @property

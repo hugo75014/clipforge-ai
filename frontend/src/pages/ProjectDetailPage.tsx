@@ -51,20 +51,17 @@ export default function ProjectDetailPage() {
     },
   })
 
+  // Le projet repasse en 'ready' (ou 'failed') quand le worker a fini : c'est
+  // lui qui fait foi, pas la mutation, qui rend la main immédiatement.
+  useEffect(() => {
+    if (project && project.status !== 'analyzing') setAnalyzing(false)
+  }, [project?.status])
+
   const analyze = useMutation({
     mutationFn: () => post<Job>(`/api/v1/projects/${id}/analyze`),
     onSuccess: () => {
       setAnalyzing(true)
       toast.success('Analysis started')
-      qc.invalidateQueries({ queryKey: ['project', id] })
-    },
-  })
-
-  const analyzeSync = useMutation({
-    mutationFn: () => post(`/api/v1/projects/${id}/analyze/sync`),
-    onMutate: () => setAnalyzing(true),
-    onSettled: () => {
-      setAnalyzing(false)
       qc.invalidateQueries({ queryKey: ['project', id] })
     },
   })
@@ -158,7 +155,7 @@ export default function ProjectDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => analyzeSync.mutate()}
+            onClick={() => analyze.mutate()}
             disabled={analyzing || !project.source_filename}
             className="btn-outline"
           >
@@ -287,7 +284,7 @@ export default function ProjectDetailPage() {
                 : 'Upload a source video first.'}
             </p>
             {project.source_filename && (
-              <button onClick={() => analyzeSync.mutate()} disabled={analyzing} className="btn-primary">
+              <button onClick={() => analyze.mutate()} disabled={analyzing} className="btn-primary">
                 {analyzing ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                 Analyze now
               </button>

@@ -53,3 +53,32 @@ export async function del<T>(url: string, config?: AxiosRequestConfig): Promise<
   const r = await api.delete<T>(url, config)
   return r.data
 }
+
+/**
+ * Suit un job asynchrone jusqu'à son état final.
+ *
+ * Les traitements lourds (analyse, rendu) tournent dans le worker : la requête
+ * HTTP rend la main tout de suite avec un job, et c'est ici qu'on attend. Évite
+ * les requêtes qui restent ouvertes plusieurs minutes et expirent en silence.
+ */
+export async function waitForJob(
+  jobId: string,
+  opts: { intervalMs?: number; timeoutMs?: number; onTick?: (job: import('@/types').Job) => void } = {}
+): Promise<import('@/types').Job> {
+  const interval = opts.intervalMs ?? 2000
+  const timeout = opts.timeoutMs ?? 60 * 60 * 1000
+  const startedAt = Date.now()
+
+  for (;;) {
+    const job = await get<import('@/types').Job>(`/api/v1/jobs/${jobId}`)
+    opts.onTick?.(job)
+    if (job.status === 'completed') return job
+    if (job.status === 'failed' || job.status === 'cancelled') {
+      throw new Error(job.error || job.message || 'Job failed')
+    }
+    if (Date.now() - startedAt > timeout) {
+      throw new Error('Job still running after the maximum wait time')
+    }
+    await new Promise((r) => setTimeout(r, interval))
+  }
+}

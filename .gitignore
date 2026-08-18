@@ -72,3 +72,10 @@ redis-data/
 *.h5
 *.keras
 *.tflite
+
+# Généré par `tsc -b` lors du build front
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Surcharge compose propre à une machine (ports, profils)
+docker-compose.override.yml

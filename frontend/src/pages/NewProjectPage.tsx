@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-import { api, post } from '@/lib/api'
+import { api, post, waitForJob } from '@/lib/api'
 import { useAuthStore } from '@/store/auth'
 import { formatBytes, cn } from '@/lib/utils'
 import { ALLOWED_VIDEO_EXT, MAX_UPLOAD_MB } from '@/lib/constants'
@@ -140,7 +140,7 @@ export default function NewProjectPage() {
       setStageIdx(1)
       setProgress(55)
 
-      // Stage animation: walk through stages while the sync analyze runs.
+      // Stage animation: walk through stages while the worker analyzes.
       let stageTimer = window.setInterval(() => {
         setStageIdx((prev) => {
           const next = Math.min(prev + 1, STAGES.length - 1)
@@ -154,7 +154,17 @@ export default function NewProjectPage() {
       }, 700)
 
       try {
-        await post(`/api/v1/projects/${project.id}/analyze/sync`)
+        // Route asynchrone : le worker fait le travail, on suit le job.
+        // La variante /sync tenait la requête ouverte le temps du traitement
+        // et expirait sur les vidéos longues.
+        const job = await post<Job>(`/api/v1/projects/${project.id}/analyze`)
+        await waitForJob(job.id, {
+          onTick: (j) => {
+            if (typeof j.progress === 'number' && j.progress > 0) {
+              setProgress(Math.min(95, 55 + j.progress * 0.4))
+            }
+          },
+        })
       } finally {
         clearInterval(stageTimer)
       }

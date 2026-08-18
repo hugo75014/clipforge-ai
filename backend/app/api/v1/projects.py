@@ -42,6 +42,7 @@ from app.schemas.transcript import (
     TranscriptWordOut,
 )
 from app.services import job as job_service
+from app.services import queue
 from app.services.project.service import (
     create_project,
     delete_project,
@@ -346,8 +347,21 @@ async def analyze(
         payload={"source": project.source_filename},
     )
 
+    # Chemin normal : le worker Celery prend le job. ffmpeg ne tourne alors
+    # jamais dans le processus qui sert l'API.
+    task_id = queue.dispatch(
+        "worker.tasks.analyze.run",
+        kwargs={"project_id": project.id, "user_id": user.id, "job_id": job.id},
+    )
+    if task_id:
+        job.celery_task_id = task_id
+        await db.commit()
+        await db.refresh(job)
+        return JobOut.model_validate(job)
+
     async def _runner():
-        # Open a fresh session inside the runner (BackgroundTasks runs after response).
+        # Repli sans worker : on exécute dans le processus web (BackgroundTasks
+        # démarre après la réponse, d'où la session dédiée).
         from app.db.session import SessionLocal as _SL
 
         async with _SL() as session:
