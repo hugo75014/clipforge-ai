@@ -1,11 +1,9 @@
 # ClipForge AI — https://clip.viralcuts.live
-# L'application est derrière authentification : seules les pages publiques
-# (accueil, connexion, inscription) ont un intérêt à être indexées.
+# L'espace de travail est derrière authentification : l'exclure de l'exploration
+# évite de faire perdre du temps aux robots sur des pages qui redirigent toutes
+# vers la connexion. Tout le reste est ouvert.
 
 User-agent: *
-Allow: /$
-Allow: /login
-Allow: /register
 Disallow: /projects
 Disallow: /clips
 Disallow: /templates
@@ -15,27 +13,5 @@ Disallow: /exports
 Disallow: /settings
 Disallow: /admin
 Disallow: /new
-
-# Crawlers des moteurs génératifs : accès autorisé, mêmes limites.
-User-agent: GPTBot
-Allow: /$
-Disallow: /projects
-Disallow: /clips
-Disallow: /admin
-Disallow: /settings
-
-User-agent: ClaudeBot
-Allow: /$
-Disallow: /projects
-Disallow: /clips
-Disallow: /admin
-Disallow: /settings
-
-User-agent: PerplexityBot
-Allow: /$
-Disallow: /projects
-Disallow: /clips
-Disallow: /admin
-Disallow: /settings
 
 Sitemap: https://clip.viralcuts.live/sitemap.xml
