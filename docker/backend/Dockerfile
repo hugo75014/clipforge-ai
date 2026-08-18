@@ -35,7 +35,8 @@ RUN pip install --upgrade pip && \
     pip install "fastapi[standard]" "uvicorn[standard]" "sqlalchemy[asyncio]" asyncpg alembic \
                 "python-jose[cryptography]" "passlib[bcrypt]" bcrypt python-multipart \
                 httpx redis celery opencv-python-headless numpy \
-                pydantic pydantic-settings
+                pydantic pydantic-settings \
+                faster-whisper
 
 # Copy source
 COPY backend/ /app/

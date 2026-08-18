@@ -25,7 +25,8 @@ RUN pip install --upgrade pip && \
     pip install "sqlalchemy[asyncio]" asyncpg alembic \
                 "python-jose[cryptography]" "passlib[bcrypt]" bcrypt \
                 httpx redis celery opencv-python-headless numpy \
-                pydantic pydantic-settings
+                pydantic pydantic-settings \
+                faster-whisper
 
 COPY backend/ /app/
 COPY shared/ /app/shared/
