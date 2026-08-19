@@ -17,12 +17,18 @@ import AISettingsPage from './pages/AISettingsPage'
 import ExportHistoryPage from './pages/ExportHistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import AdminPage from './pages/AdminPage'
+import LegalNotice from './pages/legal/LegalNotice'
+import TermsOfUse from './pages/legal/TermsOfUse'
+import PrivacyPolicy from './pages/legal/PrivacyPolicy'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/legal" element={<LegalNotice />} />
+      <Route path="/terms" element={<TermsOfUse />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
 
       {/* Racine partagée : page de présentation pour un visiteur, application
           pour un compte connecté. Les routes internes restent protégées. */}

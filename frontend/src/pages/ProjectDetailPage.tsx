@@ -66,6 +66,15 @@ export default function ProjectDetailPage() {
     },
   })
 
+  const generateMore = useMutation({
+    mutationFn: () => post<Job>(`/api/v1/projects/${id}/analyze`, null, { params: { mode: 'more' } }),
+    onSuccess: () => {
+      setAnalyzing(true)
+      toast.success('Looking for more clips')
+      qc.invalidateQueries({ queryKey: ['project', id] })
+    },
+  })
+
   const renderClip = useMutation({
     mutationFn: (clip: Clip) =>
       post<Job>(`/api/v1/clips/${clip.id}/render`, null, {
@@ -251,6 +260,15 @@ export default function ProjectDetailPage() {
           {clipCount > 0 && (
             <div className="flex gap-2">
               <button
+                onClick={() => generateMore.mutate()}
+                className="btn-outline"
+                disabled={generateMore.isPending || analyzing}
+                title="Detect more moments in the same video, without redoing what's already there"
+              >
+                {generateMore.isPending ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
+                Generate more clips
+              </button>
+              <button
                 onClick={() => topClips.forEach((c) => c.render_url || renderClip.mutate(c))}
                 className="btn-primary"
                 disabled={renderClip.isPending}
@@ -431,6 +449,10 @@ function ClipCard({
             <ScoreBar label="Share" value={clip.score_shareability} />
           </div>
 
+          {clip.render_error && !clip.render_url && (
+            <p className="mt-2 text-xs text-red-300">Render failed: {clip.render_error}</p>
+          )}
+
           <div className="mt-4 flex items-center gap-2">
             <button onClick={onOpen} className="btn-outline flex-1">
               <Edit3 className="size-4" /> Edit
@@ -445,6 +467,11 @@ function ClipCard({
               >
                 <Download className="size-4" /> Download
               </a>
+            ) : clip.render_error ? (
+              <button onClick={onRender} disabled={rendering} className="btn-primary">
+                {rendering ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                Retry
+              </button>
             ) : (
               <button onClick={onRender} disabled={rendering} className="btn-primary">
                 {rendering ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}

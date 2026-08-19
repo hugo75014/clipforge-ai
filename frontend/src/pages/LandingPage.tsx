@@ -189,6 +189,11 @@ export default function LandingPage() {
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-8 text-sm text-ink-500 sm:flex-row sm:items-center sm:justify-between">
           <span className="font-display font-medium text-ink-300">ClipForge AI</span>
+          <nav className="flex items-center gap-4 text-xs">
+            <Link to="/legal" className="hover:text-ink-100">Legal notice</Link>
+            <Link to="/terms" className="hover:text-ink-100">Terms</Link>
+            <Link to="/privacy" className="hover:text-ink-100">Privacy</Link>
+          </nav>
           <span className="font-mono text-xs">clip.viralcuts.live</span>
         </div>
       </footer>

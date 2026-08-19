@@ -329,6 +329,7 @@ async def upload(
 async def analyze(
     project_id: str,
     background: BackgroundTasks,
+    mode: str = Query("full", pattern="^(full|more)$"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> JobOut:
@@ -336,22 +337,28 @@ async def analyze(
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     await _ensure_owner(project, user)
-    if not project.source_path:
+    if mode == "full" and not project.source_path:
         raise HTTPException(status_code=400, detail="No source video uploaded yet")
+    if mode == "more":
+        has_transcript = (
+            await db.execute(select(TSegment.id).where(TSegment.project_id == project.id).limit(1))
+        ).first()
+        if not has_transcript:
+            raise HTTPException(status_code=400, detail="Run a full analysis first")
 
     job = await job_service.create_job(
         db,
         type_="analyze",
         project_id=project.id,
         user_id=user.id,
-        payload={"source": project.source_filename},
+        payload={"source": project.source_filename, "mode": mode},
     )
 
     # Chemin normal : le worker Celery prend le job. ffmpeg ne tourne alors
     # jamais dans le processus qui sert l'API.
     task_id = queue.dispatch(
         "worker.tasks.analyze.run",
-        kwargs={"project_id": project.id, "user_id": user.id, "job_id": job.id},
+        kwargs={"project_id": project.id, "user_id": user.id, "job_id": job.id, "mode": mode},
     )
     if task_id:
         job.celery_task_id = task_id
@@ -377,7 +384,7 @@ async def analyze(
                     if jj:
                         await job_service.update_progress(session, jj, percent=p, message=msg, stage=stage)
 
-                await run_analysis_pipeline(session, proj, j, progress)
+                await run_analysis_pipeline(session, proj, j, progress, mode=mode)
                 jj = await job_service.get_job(session, j.id)
                 if jj:
                     await job_service.complete_job(session, jj, message="Analysis complete")

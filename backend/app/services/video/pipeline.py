@@ -42,11 +42,20 @@ async def run_analysis_pipeline(
     project: Project,
     job: Job,
     progress,
+    mode: str = "full",
 ) -> dict:
-    """Run the full analyze pipeline: probe → extract audio → transcribe → detect clips.
+    """Run the analyze pipeline: probe → extract audio → transcribe → detect clips.
+
+    `mode="more"` reuses the transcript already on disk/DB and only re-runs
+    clip detection, appending new clips instead of wiping the project's
+    existing ones — used by the "Generate more" action once a project has
+    already been analyzed once.
 
     Returns a dict with `clips_created`.
     """
+    if mode == "more":
+        return await _run_more_clips(db, project, job, progress)
+
     storage = get_storage()
     if not project.source_path:
         raise RuntimeError("Project has no source video uploaded")
@@ -179,6 +188,115 @@ async def run_analysis_pipeline(
     await db.commit()
 
     return {"clips_created": len(detected), "transcript_segments": len(transcript.segments)}
+
+
+async def _run_more_clips(db: AsyncSession, project: Project, job: Job, progress) -> dict:
+    """Detect additional clip candidates from the transcript already on file.
+
+    No probe/extract/transcribe: the existing `TranscriptSegment` rows are
+    reassembled into a `Transcript` and re-run through detection only. New
+    clips are appended after the existing ones; nothing already generated is
+    touched, so previously rendered clips and their `render_url` survive.
+    """
+    from app.models import TranscriptSegment as TSegment
+    from shared.types import TranscriptSegment as TSeg, TranscriptWord as TWord
+
+    await progress(10.0, "Loading existing transcript", "load_transcript")
+    rows = (
+        await db.execute(
+            select(TSegment).where(TSegment.project_id == project.id).order_by(TSegment.idx)
+        )
+    ).scalars().all()
+    if not rows:
+        raise RuntimeError("Project has no transcript yet — run a full analysis first")
+
+    segments = []
+    for row in rows:
+        words_raw = json.loads(row.words_json) if row.words_json else []
+        words = [
+            TWord(
+                word=w.get("word", ""),
+                start=w.get("start", 0.0),
+                end=w.get("end", 0.0),
+                confidence=w.get("confidence", 1.0),
+            )
+            for w in words_raw
+        ]
+        segments.append(
+            TSeg(
+                id=str(row.id),
+                start=row.start_sec,
+                end=row.end_sec,
+                text=row.text,
+                words=words,
+                speaker=row.speaker,
+                confidence=row.confidence or 1.0,
+            )
+        )
+    duration = max((s.end for s in segments), default=0.0)
+    transcript = Transcript(
+        language=project.language or "en",
+        segments=segments,
+        duration=duration,
+        provider=rows[0].provider or "cached",
+    )
+
+    await progress(45.0, "Detecting more viral moments", "detect_clips")
+    existing_clips = (
+        await db.execute(select(Clip).where(Clip.project_id == project.id))
+    ).scalars().all()
+    existing_ranges = [(c.start_sec, c.end_sec) for c in existing_clips]
+    next_order = (max((c.sort_order for c in existing_clips), default=-1)) + 1
+
+    detected = await detect_and_enrich(
+        transcript,
+        target_duration=min(45.0, max(15.0, duration * 0.3)),
+        min_duration=min(8.0, max(5.0, duration * 0.2)),
+        max_duration=min(90.0, max(15.0, duration * 0.8)),
+        top_k=10,
+        min_score=0.0,
+    )
+
+    def _overlaps(a_start: float, a_end: float) -> bool:
+        return any(a_start < b_end and b_start < a_end for b_start, b_end in existing_ranges)
+
+    created = 0
+    await progress(80.0, "Saving new clip candidates", "persist_clips")
+    for d in detected:
+        if _overlaps(d.start, d.end):
+            continue
+        clip = Clip(
+            project_id=project.id,
+            start_sec=d.start,
+            end_sec=d.end,
+            title=d.title,
+            hook=d.hook,
+            description=d.description,
+            hashtags=json.dumps(d.hashtags, ensure_ascii=False),
+            keywords=json.dumps(d.keywords, ensure_ascii=False),
+            transcript=d.transcript,
+            reason=d.reason,
+            score_hook=d.scores.hook,
+            score_emotion=d.scores.emotion,
+            score_information=d.scores.information,
+            score_story=d.scores.story,
+            score_curiosity=d.scores.curiosity,
+            score_shareability=d.scores.shareability,
+            score_completion=d.scores.completion,
+            score_overall=d.scores.overall,
+            status="ready",
+            selected=True,
+            sort_order=next_order,
+        )
+        next_order += 1
+        created += 1
+        db.add(clip)
+    await db.commit()
+
+    project.status = "ready"
+    await db.commit()
+
+    return {"clips_created": created, "transcript_segments": len(segments)}
 
 
 async def _materialize_source(storage, project) -> Path:

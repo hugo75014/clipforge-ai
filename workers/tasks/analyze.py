@@ -10,7 +10,13 @@ log = get_logger(__name__)
 
 
 @celery_app.task(name="worker.tasks.analyze.run", bind=True, max_retries=2)
-def run_analyze(self, project_id: str, user_id: str | None = None, job_id: str | None = None) -> dict:
+def run_analyze(
+    self,
+    project_id: str,
+    user_id: str | None = None,
+    job_id: str | None = None,
+    mode: str = "full",
+) -> dict:
     """Run the analyze pipeline for `project_id`.
 
     Mirrors the inline `analyze_sync` endpoint but in a worker.
@@ -39,7 +45,7 @@ def run_analyze(self, project_id: str, user_id: str | None = None, job_id: str |
                     async def progress(p, msg, stage=None):
                         await job_service.update_progress(db, job, percent=p, message=msg, stage=stage)
 
-                    result = await run_analysis_pipeline(db, project, job, progress)
+                    result = await run_analysis_pipeline(db, project, job, progress, mode=mode)
                     await job_service.complete_job(db, job, message="Analysis complete", extra=result)
                     return {"ok": True, "job_id": job.id, "result": result}
                 except Exception as exc:  # noqa: BLE001
