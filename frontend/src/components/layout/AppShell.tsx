@@ -14,7 +14,6 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Sparkles,
   Menu,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -52,8 +51,8 @@ export default function AppShell() {
         )}
       >
         <div className="h-16 flex items-center gap-2 px-4 border-b border-white/5">
-          <div className="size-9 rounded-xl bg-gradient-to-br from-brand-500 to-pink-500 grid place-items-center shadow-glow">
-            <Sparkles className="size-5 text-white" />
+          <div className="size-9 rounded-xl overflow-hidden shadow-glow">
+            <img src="/logo.png" alt="ClipForge AI" className="size-full object-cover" />
           </div>
           {sidebarOpen && (
             <div className="leading-tight">
@@ -134,8 +133,8 @@ export default function AppShell() {
             >
               <div className="h-16 flex items-center justify-between px-4 border-b border-white/5">
                 <div className="flex items-center gap-2">
-                  <div className="size-9 rounded-xl bg-gradient-to-br from-brand-500 to-pink-500 grid place-items-center">
-                    <Sparkles className="size-5 text-white" />
+                  <div className="size-9 rounded-xl overflow-hidden">
+                    <img src="/logo.png" alt="ClipForge AI" className="size-full object-cover" />
                   </div>
                   <div className="font-semibold tracking-tight">ClipForge AI</div>
                 </div>
@@ -180,13 +179,12 @@ export default function AppShell() {
             >
               <Menu className="size-5" />
             </button>
-            <h1 className="text-sm text-ink-400 hidden sm:block">Welcome back, {user?.name || 'creator'}.</h1>
+            <h1 className="text-sm text-ink-400 hidden sm:block">
+              Welcome back, {user?.name || 'creator'}.
+            </h1>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/new')}
-              className="hidden sm:inline-flex btn-primary"
-            >
+            <button onClick={() => navigate('/new')} className="hidden sm:inline-flex btn-primary">
               <Plus className="size-4" />
               <span>New project</span>
             </button>
@@ -196,7 +194,9 @@ export default function AppShell() {
               </div>
               <div className="hidden sm:block leading-tight">
                 <div className="text-xs font-medium">{user?.name || user?.email}</div>
-                <div className="text-[10px] text-ink-400 uppercase tracking-wider">{user?.role}</div>
+                <div className="text-[10px] text-ink-400 uppercase tracking-wider">
+                  {user?.role}
+                </div>
               </div>
               <button
                 onClick={() => {
